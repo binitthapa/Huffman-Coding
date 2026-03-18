@@ -46,3 +46,15 @@ def encode_text(text, codes):
         encoded += codes[char]
     return encoded
         
+def decode_text(encoded, root):
+    decoded = ""
+    current = root
+    for bit in encoded:
+        if bit == "0":
+            current = current.left
+        else:
+            current = current.right
+        if current.char is not None:
+            decoded += current.char
+            current = root
+    return decoded
