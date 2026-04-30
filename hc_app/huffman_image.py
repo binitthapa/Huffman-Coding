@@ -1,6 +1,7 @@
 import numpy as np
 from PIL import Image
 from hc_app.huffman import *
+import math
 
 def read_image(image_path):
     img = Image.open(image_path).convert('RGB')
@@ -85,3 +86,63 @@ def decompress_image(compressed_data , output_path):
     img.save(output_path)
     print(f"\nImage saved to : {output_path}")
     return output_path
+
+def calculate_psnr(original , restored):
+    if len(original) != len(restored):
+        return 0
+
+    # Step 1 — Calculate MSE
+    total_error = 0
+    for o, r in zip(original, restored):
+        total_error += (int(o) - int(r)) ** 2
+
+    mse = total_error / len(original)
+
+ 
+    if mse == 0:
+        return float('inf')
+
+   
+    MAX  = 255.0
+    psnr = 10 * math.log10((MAX ** 2) / mse)
+    return round(psnr, 2)
+
+
+def get_compression_stats(image_path, compressed_data):
+    R, G, B, width, height = read_image(image_path)
+    original_bits   = width * height * 3 * 8
+    compressed_bits = (len(compressed_data["encoded_R"]) +
+                       len(compressed_data["encoded_G"]) +
+                       len(compressed_data["encoded_B"]))
+
+    compression_ratio = round(original_bits / compressed_bits, 4)
+    reduction         = round(
+        (1 - compressed_bits / original_bits) * 100, 2)
+
+    
+    R_restored = decompress_channel(
+        compressed_data["encoded_R"], compressed_data["root_R"])
+    G_restored = decompress_channel(
+        compressed_data["encoded_G"], compressed_data["root_G"])
+    B_restored = decompress_channel(
+        compressed_data["encoded_B"], compressed_data["root_B"])
+    psnr_R = calculate_psnr(R, R_restored)
+    psnr_G = calculate_psnr(G, G_restored)
+    psnr_B = calculate_psnr(B, B_restored)
+    if all(p == float('inf') for p in [psnr_R, psnr_G, psnr_B]):
+        overall_psnr = float('inf')
+    else:
+        overall_psnr = round((psnr_R + psnr_G + psnr_B) / 3, 2)
+
+    return {
+        "original_bits"     : original_bits,
+        "compressed_bits"   : compressed_bits,
+        "compression_ratio" : compression_ratio,
+        "reduction"         : reduction,
+        "psnr_R"            : psnr_R,
+        "psnr_G"            : psnr_G,
+        "psnr_B"            : psnr_B,
+        "overall_psnr"      : overall_psnr,
+        "width"             : width,
+        "height"            : height
+    }
