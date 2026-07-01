@@ -585,7 +585,7 @@ function showResults(data) {
                 '<i class="bi bi-download me-2"></i>' +
                 'Download Original';
 
-        // ✅ Compressed button — for images
+        //  Compressed button — for images
         document.getElementById('downloadCompressed')
                 .href = data.compressed_url;
         document.getElementById('downloadCompressed')
@@ -640,7 +640,7 @@ function showResults(data) {
     document.getElementById('statusMsg')
             .innerHTML =
             '<span class="text-success fw-bold">' +
-            '✅ Compression complete!</span>';
+            ' Compression complete!</span>';
 
     document.getElementById('compressBtn')
             .disabled = false;
@@ -652,7 +652,7 @@ function showError(msg) {
     document.getElementById('statusMsg')
             .innerHTML =
             '<span class="text-danger">' +
-            '❌ Error: ' + msg + '</span>';
+            ' Error: ' + msg + '</span>';
     document.getElementById('compressBtn')
             .disabled = false;
 }
