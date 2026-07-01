@@ -16,14 +16,11 @@
 <!-- Navbar -->
 <nav class="navbar navbar-dark bg-dark px-4 py-3">
     <div class="d-flex align-items-center gap-2">
-        <i class="bi bi-lightning-charge-fill text-warning fs-4"></i>
+        
         <span class="navbar-brand mb-0 fw-bold fs-5">
             Huffman Coding Compression Tool
         </span>
     </div>
-    <span class="text-secondary small d-none d-md-block">
-        BScCSIT 7th Semester Project
-    </span>
 </nav>
 
 <!-- Main Container -->
@@ -34,7 +31,6 @@
         <h2 class="fw-bold">File Compression</h2>
         <p class="text-muted">
             Upload any file or image to compress
-            using Huffman Coding algorithm
         </p>
     </div>
 
@@ -58,19 +54,6 @@
             <p class="text-muted small mb-3">
                 or click to browse from your computer
             </p>
-
-            <div class="d-flex gap-2
-                        justify-content-center
-                        flex-wrap mb-2">
-                <span class="badge bg-secondary">.txt</span>
-                <span class="badge bg-secondary">.pdf</span>
-                <span class="badge bg-secondary">.png</span>
-                <span class="badge bg-secondary">.jpg</span>
-                <span class="badge bg-secondary">.jpeg</span>
-                <span class="badge bg-secondary">.bmp</span>
-                <span class="badge bg-secondary">.webp</span>
-                <span class="badge bg-secondary">.docx</span>
-            </div>
 
             <input type="file"
                    id="fileInput"
@@ -274,7 +257,7 @@
                         Lossless
                     </div>
                     <div class="fw-bold fs-5 text-success"
-                         id="lossless">✅ Yes</div>
+                         id="lossless"> Yes</div>
                 </div>
             </div>
         </div>
@@ -414,40 +397,33 @@
 </div>
 
 </div>
-
-<!-- Footer -->
-<footer class="bg-dark text-secondary text-center py-3 mt-4">
-    <small>
-        Huffman Coding Compression —
-        BScCSIT 7th Semester Project
-    </small>
-</footer>
-
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js">
 </script>
 
 <script>
-let selectedFile      = null;
-let progressInterval  = null;
+let selectedFile = null;
+let progressInterval = null;
 let rVal = 0, gVal = 0, bVal = 0;
+
+const IMAGE_EXTENSIONS = [
+    'jpg', 'jpeg', 'png', 'bmp', 'webp', 'tiff'
+];
 
 // ── Drag and Drop ──
 function handleDragOver(e) {
     e.preventDefault();
-    document.getElementById('dropZone')
-            .style.background = '#e8f0fe';
+    document.getElementById('dropZone').style.background = '#e8f0fe';
 }
 
 function handleDragLeave() {
-    document.getElementById('dropZone')
-            .style.background = '';
+    document.getElementById('dropZone').style.background = '';
 }
 
 function handleDrop(e) {
     e.preventDefault();
-    document.getElementById('dropZone')
-            .style.background = '';
+    document.getElementById('dropZone').style.background = '';
+
     if (e.dataTransfer.files.length > 0) {
         setFile(e.dataTransfer.files[0]);
     }
@@ -462,43 +438,77 @@ function handleFileSelect(e) {
 
 function setFile(file) {
     selectedFile = file;
-    document.getElementById('selectedFileName')
-            .textContent = file.name +
-            ' (' + formatBytes(file.size) + ')';
+
+    document.getElementById('selectedFileName').textContent =
+        file.name + ' (' + formatBytes(file.size) + ')';
+
     document.getElementById('fileSelected')
-            .classList.remove('d-none');
+        .classList.remove('d-none');
+
     document.getElementById('compressBtn')
-            .disabled = false;
-    document.getElementById('statusMsg')
-            .textContent =
+        .disabled = false;
+
+    let ext = file.name.split('.').pop().toLowerCase();
+
+    if (ext === 'huff') {
+        document.getElementById('compressBtn').innerHTML =
+            '<i class="bi bi-arrow-counterclockwise me-2"></i>Decompress File';
+
+        document.getElementById('statusMsg').textContent =
+            '.huff file ready — click Decompress!';
+    } else {
+        document.getElementById('compressBtn').innerHTML =
+            '<i class="bi bi-lightning-fill me-2"></i>Compress File';
+
+        document.getElementById('statusMsg').textContent =
             'File ready — click Compress!';
+    }
 }
 
 // ── Format Bytes ──
 function formatBytes(bytes) {
-    if (bytes < 1024)
-        return bytes + ' B';
+    if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024)
         return (bytes / 1024).toFixed(2) + ' KB';
+
     return (bytes / 1024 / 1024).toFixed(2) + ' MB';
 }
 
 // ── Start Compression ──
 function startCompression() {
+
     if (!selectedFile) return;
 
     document.getElementById('compressBtn')
-            .disabled = true;
-    document.getElementById('statusMsg')
-            .innerHTML =
-            '<span class="spinner-border ' +
-            'spinner-border-sm me-2"></span>' +
-            'Compressing... please wait';
+        .disabled = true;
 
+    document.getElementById('statusMsg').innerHTML =
+        '<span class="spinner-border spinner-border-sm me-2"></span>' +
+        'Processing... please wait';
+
+    // Hide everything first
     document.getElementById('progressSection')
+        .classList.add('d-none');
+
+    document.getElementById('imageSection')
+        .classList.add('d-none');
+
+    document.getElementById('compareSection')
+        .classList.add('d-none');
+
+    document.getElementById('compressedNote')
+        .style.display = 'none';
+
+    let ext = selectedFile.name.split('.').pop().toLowerCase();
+
+    // ONLY SHOW RGB FOR IMAGES
+    if (IMAGE_EXTENSIONS.includes(ext)) {
+
+        document.getElementById('progressSection')
             .classList.remove('d-none');
 
-    startProgress();
+        startProgress();
+    }
 
     let formData = new FormData();
     formData.append('file', selectedFile);
@@ -509,187 +519,314 @@ function startCompression() {
     })
     .then(r => r.json())
     .then(data => {
+
         if (data.success) {
             showResults(data);
         } else {
             showError(data.error || 'Unknown error');
         }
+
     })
     .catch(err => showError(err.toString()));
 }
 
 // ── Progress Animation ──
 function startProgress() {
-    rVal = 0; gVal = 0; bVal = 0;
+
+    rVal = 0;
+    gVal = 0;
+    bVal = 0;
+
     progressInterval = setInterval(() => {
+
         if (rVal < 90) rVal += 3;
         if (gVal < 85) gVal += 2;
         if (bVal < 88) bVal += 2.5;
+
         updateBar('rBar', 'rPct', rVal);
         updateBar('gBar', 'gPct', gVal);
         updateBar('bBar', 'bPct', bVal);
+
     }, 150);
 }
 
 function updateBar(barId, pctId, val) {
+
     val = Math.min(Math.round(val), 100);
-    document.getElementById(barId).style.width = val + '%';
-    document.getElementById(pctId).textContent = val + '%';
+
+    document.getElementById(barId).style.width =
+        val + '%';
+
+    document.getElementById(pctId).textContent =
+        val + '%';
 }
 
 // ── Show Results ──
 function showResults(data) {
+
     clearInterval(progressInterval);
-    updateBar('rBar', 'rPct', 100);
-    updateBar('gBar', 'gPct', 100);
-    updateBar('bBar', 'bPct', 100);
 
-    let origKB = (data.original_bits / 8 / 1024)
-                 .toFixed(2) + ' KB';
-    let compKB = (data.compressed_bits / 8 / 1024)
-                 .toFixed(2) + ' KB';
+    // ONLY COMPLETE RGB IF IMAGE
+    if (data.file_type === 'image') {
 
+        updateBar('rBar', 'rPct', 100);
+        updateBar('gBar', 'gPct', 100);
+        updateBar('bBar', 'bPct', 100);
+
+    }
+
+    // ── .HUFF DECOMPRESSION ──
+    if (data.file_type === 'decompress') {
+
+        show('extraStatsSection');
+
+        document.getElementById('compRatio')
+            .textContent =
+            data.compression_ratio + 'x';
+
+        document.getElementById('execTime')
+            .textContent =
+            data.execution_time + 's';
+
+        document.getElementById('lossless')
+            .textContent =
+            'Yes';
+
+        let dlSection =
+            document.getElementById('downloadSection');
+
+        dlSection.classList.remove('d-none');
+        dlSection.style.display = 'flex';
+
+        document.getElementById('downloadOriginal')
+            .style.display = 'none';
+
+        document.getElementById('downloadCompressed')
+            .style.display = 'none';
+
+        document.getElementById('downloadRestored')
+            .href = data.restored_url;
+
+        document.getElementById('downloadRestored')
+            .innerHTML =
+            '<i class="bi bi-download me-2"></i>' +
+            'Download Decompressed File';
+
+        document.getElementById('statusMsg').innerHTML =
+            '<span class="text-success fw-bold">' +
+            ' Decompression complete!</span>';
+
+        document.getElementById('compressBtn')
+            .disabled = false;
+
+        return;
+    }
+
+    let origKB =
+        (data.original_bits / 8 / 1024).toFixed(2) +
+        ' KB';
+
+    let compKB =
+        (data.compressed_bits / 8 / 1024).toFixed(2) +
+        ' KB';
+
+    // ── METRICS ──
     show('metricsSection');
-    document.getElementById('origSize').textContent = origKB;
-    document.getElementById('compSize').textContent = compKB;
+
+    document.getElementById('origSize')
+        .textContent = origKB;
+
+    document.getElementById('compSize')
+        .textContent = compKB;
+
     document.getElementById('reduction')
-            .textContent = data.reduction + '%';
-    document.getElementById('psnr').textContent = data.psnr;
+        .textContent =
+        data.reduction + '%';
 
+    // ONLY SHOW PSNR FOR IMAGES
+    if (data.file_type === 'image') {
+
+        document.getElementById('psnr')
+            .textContent =
+            data.psnr;
+
+    } else {
+
+        document.getElementById('psnr')
+            .textContent = 'N/A';
+
+    }
+
+    // ── EXTRA STATS ──
     show('extraStatsSection');
-    document.getElementById('compRatio')
-            .textContent = data.compression_ratio + 'x';
-    document.getElementById('execTime')
-            .textContent = data.execution_time + 's';
 
-    // Show download section
-    let dlSection = document.getElementById('downloadSection');
+    document.getElementById('compRatio')
+        .textContent =
+        data.compression_ratio + 'x';
+
+    document.getElementById('execTime')
+        .textContent =
+        data.execution_time + 's';
+
+    document.getElementById('lossless')
+        .textContent =
+        ' Yes';
+
+    // ── DOWNLOADS ──
+    let dlSection =
+        document.getElementById('downloadSection');
+
     dlSection.classList.remove('d-none');
     dlSection.style.display = 'flex';
 
-    document.getElementById('compressedNote').style.display = 'block';
+    document.getElementById('downloadOriginal')
+        .style.display = 'inline-block';
 
+    document.getElementById('downloadCompressed')
+        .style.display = 'inline-block';
+
+    document.getElementById('downloadOriginal')
+        .href = data.original_url;
+
+    document.getElementById('downloadCompressed')
+        .href = data.compressed_url;
+
+    document.getElementById('downloadRestored')
+        .href = data.restored_url;
+
+    // ── IMAGE ONLY UI ──
     if (data.file_type === 'image') {
-        // Show image comparison
+
         show('imageSection');
+
         document.getElementById('originalImg')
-                .src = data.original_url;
+            .src = data.original_url;
+
         document.getElementById('restoredImg')
-                .src = data.restored_url;
+            .src = data.restored_url;
 
-        // Original button
-        document.getElementById('downloadOriginal')
-                .href = data.original_url;
-        document.getElementById('downloadOriginal')
-                .innerHTML =
-                '<i class="bi bi-download me-2"></i>' +
-                'Download Original';
+        show('compareSection');
 
-        //  Compressed button — for images
-        document.getElementById('downloadCompressed')
-                .href = data.compressed_url;
-        document.getElementById('downloadCompressed')
-                .style.display = 'inline-block';
-        document.getElementById('downloadCompressed')
-                .innerHTML =
-                '<i class="bi bi-download me-2"></i>' +
-                'Download Compressed (.huff)';
+        document.getElementById('compressedNote')
+            .style.display = 'block';
 
-        // Restored button
-        document.getElementById('downloadRestored')
-                .href = data.restored_url;
-        document.getElementById('downloadRestored')
-                .innerHTML =
-                '<i class="bi bi-download me-2"></i>' +
-                'Download Restored';
+        setTimeout(() => {
 
-    } else {
-        // Text/other file downloads
-        document.getElementById('downloadOriginal')
-                .href = data.original_url;
-        document.getElementById('downloadOriginal')
-                .innerHTML =
-                '<i class="bi bi-download me-2"></i>' +
-                'Download Original';
+            updateBar(
+                'hBar',
+                'hPct',
+                data.reduction
+            );
 
-        document.getElementById('downloadCompressed')
-                .href = data.compressed_url;
-        document.getElementById('downloadCompressed')
-                .style.display = 'inline-block';
-        document.getElementById('downloadCompressed')
-                .innerHTML =
-                '<i class="bi bi-download me-2"></i>' +
-                'Download Compressed (.huff)';
+            document.getElementById('hPct')
+                .textContent =
+                data.reduction + '%';
 
-        document.getElementById('downloadRestored')
-                .href = data.restored_url;
-        document.getElementById('downloadRestored')
-                .innerHTML =
-                '<i class="bi bi-download me-2"></i>' +
-                'Download Restored';
+        }, 400);
+
+    }
+    else {
+
+        document.getElementById('imageSection')
+            .classList.add('d-none');
+
+        document.getElementById('compareSection')
+            .classList.add('d-none');
+
+        document.getElementById('compressedNote')
+            .style.display = 'none';
     }
 
-    // Comparison chart
-    show('compareSection');
-    setTimeout(() => {
-        updateBar('hBar', 'hPct', data.reduction);
-        document.getElementById('hPct')
-                .textContent = data.reduction + '%';
-    }, 400);
-
-    document.getElementById('statusMsg')
-            .innerHTML =
-            '<span class="text-success fw-bold">' +
-            ' Compression complete!</span>';
+    document.getElementById('statusMsg').innerHTML =
+        '<span class="text-success fw-bold">' +
+        'Compression complete!</span>';
 
     document.getElementById('compressBtn')
-            .disabled = false;
+        .disabled = false;
 }
 
 // ── Show Error ──
 function showError(msg) {
+
     clearInterval(progressInterval);
-    document.getElementById('statusMsg')
-            .innerHTML =
-            '<span class="text-danger">' +
-            ' Error: ' + msg + '</span>';
+
+    document.getElementById('statusMsg').innerHTML =
+        '<span class="text-danger">' +
+        'Error: ' + msg + '</span>';
+
     document.getElementById('compressBtn')
-            .disabled = false;
+        .disabled = false;
 }
 
 // ── Helper ──
 function show(id) {
-    document.getElementById(id).classList.remove('d-none');
+    document.getElementById(id)
+        .classList.remove('d-none');
 }
 
 // ── Reset ──
 function resetAll() {
+
     selectedFile = null;
+
     clearInterval(progressInterval);
 
-    ['progressSection', 'metricsSection',
-     'extraStatsSection', 'imageSection',
-     'compareSection', 'fileSelected']
-    .forEach(id => {
-        document.getElementById(id).classList.add('d-none');
+    [
+        'progressSection',
+        'metricsSection',
+        'extraStatsSection',
+        'imageSection',
+        'compareSection',
+        'fileSelected'
+    ].forEach(id => {
+
+        document.getElementById(id)
+            .classList.add('d-none');
+
     });
 
-    let dlSection = document.getElementById('downloadSection');
+    let dlSection =
+        document.getElementById('downloadSection');
+
     dlSection.classList.add('d-none');
     dlSection.style.display = '';
 
-    ['rBar','gBar','bBar','hBar'].forEach(id => {
-        document.getElementById(id).style.width = '0%';
-    });
-    ['rPct','gPct','bPct','hPct'].forEach(id => {
-        document.getElementById(id).textContent = '0%';
+    document.getElementById('compressedNote')
+        .style.display = 'none';
+
+    ['rBar', 'gBar', 'bBar', 'hBar']
+    .forEach(id => {
+
+        document.getElementById(id)
+            .style.width = '0%';
+
     });
 
-    document.getElementById('compressBtn').disabled = true;
+    ['rPct', 'gPct', 'bPct', 'hPct']
+    .forEach(id => {
+
+        document.getElementById(id)
+            .textContent = '0%';
+
+    });
+
+    document.getElementById('compressBtn')
+        .disabled = true;
+
     document.getElementById('statusMsg')
-            .textContent = 'Select a file to get started';
-    document.getElementById('fileInput').value = '';
-    document.getElementById('dropZone').style.background = '';
+        .textContent =
+        'Select a file to get started';
+
+    document.getElementById('fileInput')
+        .value = '';
+
+    document.getElementById('dropZone')
+        .style.background = '';
+
+    document.getElementById('compressBtn')
+        .innerHTML =
+        '<i class="bi bi-lightning-fill me-2"></i>' +
+        'Compress File';
 }
 </script>
 

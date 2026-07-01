@@ -1,6 +1,6 @@
 import heapq
 from collections import Counter
-
+import pickle
 
 class Node:
     def __init__(self, char=None, freq=None):
@@ -135,6 +135,47 @@ def remove_padding(bit_string):
 
     return bit_string
 
+
+def bytes_to_bitstring(byte_data):
+    """Converts raw bytes back into a bit string"""
+    bit_string = ""
+    for byte in byte_data:
+        bit_string += "{0:08b}".format(byte)
+    return bit_string
+
+def save_compressed_file(encoded, root, output_path,
+                          original_extension="bin"):
+    """
+    Saves encoded bits + tree + original extension
+    into a single .huff file.
+    """
+    padded   = pad_encoded_text(encoded)
+    byte_arr = get_byte_array(padded)
+
+    package = {
+        'encoded_bytes'      : bytes(byte_arr),
+        'tree'               : root,
+        'original_extension' : original_extension,  # ✅ NEW
+    }
+
+    with open(output_path, 'wb') as f:
+        pickle.dump(package, f)
+
+
+def load_compressed_file(huff_path):
+    with open(huff_path, 'rb') as f:
+        package = pickle.load(f)
+
+    encoded_bytes      = package['encoded_bytes']
+    root               = package['tree']
+    # ✅ Get original extension — default to bin if not found
+    original_extension = package.get(
+        'original_extension', 'bin')
+
+    bit_string = bytes_to_bitstring(encoded_bytes)
+    encoded    = remove_padding(bit_string)
+
+    return encoded, root, original_extension
 
 def bytes_to_bitstring(byte_data):
     """Converts raw bytes back into a bit string"""
