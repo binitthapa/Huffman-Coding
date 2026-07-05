@@ -155,7 +155,7 @@ def save_compressed_file(encoded, root, output_path,
     package = {
         'encoded_bytes'      : bytes(byte_arr),
         'tree'               : root,
-        'original_extension' : original_extension,  # ✅ NEW
+        'original_extension' : original_extension,  
     }
 
     with open(output_path, 'wb') as f:
@@ -168,7 +168,7 @@ def load_compressed_file(huff_path):
 
     encoded_bytes      = package['encoded_bytes']
     root               = package['tree']
-    # ✅ Get original extension — default to bin if not found
+    
     original_extension = package.get(
         'original_extension', 'bin')
 

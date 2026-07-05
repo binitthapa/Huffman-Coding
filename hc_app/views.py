@@ -1,6 +1,8 @@
 import os
+import re
 import time
 import pickle
+from urllib import request
 import numpy as np
 from PIL import Image
 from django.shortcuts import render
@@ -17,8 +19,8 @@ from hc_app.huffman import (
     decode_text,
     pad_encoded_text,
     get_byte_array,
-    remove_padding,        # ← was missing!
-    bytes_to_bitstring,    # ← was missing!
+    remove_padding,
+    bytes_to_bitstring,
     save_compressed_file,
     load_compressed_file,
 )
@@ -29,17 +31,9 @@ from hc_app.huffman_image import (
 )
 
 
-# ─────────────────────────────────────
-# MAIN PAGE
-# ─────────────────────────────────────
-
 def index(request):
     return render(request, 'index.html')
 
-
-# ─────────────────────────────────────
-# DOWNLOAD VIEW
-# ─────────────────────────────────────
 
 def download_file(request, file_type, filename):
     folder_map = {
@@ -66,10 +60,6 @@ def download_file(request, file_type, filename):
     )
 
 
-# ─────────────────────────────────────
-# MAIN COMPRESS / DECOMPRESS VIEW
-# ─────────────────────────────────────
-
 @csrf_exempt
 def compress(request):
     if request.method == 'POST' and request.FILES.get('file'):
@@ -77,6 +67,9 @@ def compress(request):
         uploaded_file = request.FILES['file']
         filename      = uploaded_file.name
         extension     = filename.split('.')[-1].lower()
+
+        # ✅ Get mode from form
+        mode = request.POST.get('mode', 'lossless')
 
         upload_path = os.path.join(
             settings.MEDIA_ROOT, 'uploads', filename)
@@ -91,19 +84,35 @@ def compress(request):
 
         image_extensions = [
             'jpg', 'jpeg', 'png',
-            'bmp', 'tiff', 'webp'
+            'bmp', 'webp'
         ]
 
         try:
             if extension == 'huff':
                 result = handle_huff(
                     upload_path, filename, start_time)
-            elif extension in image_extensions:
-                result = handle_image(
-                    upload_path, filename, start_time)
+
+            elif mode == 'lossy':
+                if extension in image_extensions:
+                    result = handle_lossy_image(upload_path, filename, start_time, request)
+                elif extension == 'txt':
+                    result = handle_lossy_text(
+                        upload_path, filename, start_time)
+                else:
+                    return JsonResponse({
+                        'error':
+                        'Lossy compression supports '
+                        'images and .txt files only.'
+                    }, status=400)
+
             else:
-                result = handle_any_file(
-                    upload_path, filename, start_time)
+                if extension in image_extensions:
+                    result = handle_image(
+                        upload_path, filename, start_time)
+                else:
+                    result = handle_any_file(
+                        upload_path, filename, start_time)
+
         except Exception as e:
             return JsonResponse(
                 {'error': str(e)}, status=500)
@@ -114,10 +123,7 @@ def compress(request):
         {'error': 'No file uploaded'}, status=400)
 
 
-# ─────────────────────────────────────
-# IMAGE COMPRESSION
-# ─────────────────────────────────────
-
+# ── LOSSLESS IMAGE ──
 def handle_image(upload_path, filename, start_time):
     compressed_data = compress_image(upload_path)
     stats = get_compression_stats(
@@ -132,16 +138,13 @@ def handle_image(upload_path, filename, start_time):
         settings.MEDIA_ROOT, 'restored', restored_filename)
     os.makedirs(
         os.path.dirname(restored_path), exist_ok=True)
-
     decompress_image(compressed_data, restored_path)
 
-    # Save image .huff with tree inside
     huff_filename = base_name + '.huff'
     huff_path     = os.path.join(
         settings.MEDIA_ROOT, 'compressed', huff_filename)
     os.makedirs(
         os.path.dirname(huff_path), exist_ok=True)
-
     save_image_huff(compressed_data,
                     huff_path,
                     original_extension)
@@ -161,6 +164,7 @@ def handle_image(upload_path, filename, start_time):
 
     return {
         'success'           : True,
+        'mode'              : 'lossless',
         'file_type'         : 'image',
         'filename'          : filename,
         'original_bits'     : actual_file_size * 8,
@@ -179,16 +183,10 @@ def handle_image(upload_path, filename, start_time):
 
 def save_image_huff(compressed_data, huff_path,
                     original_extension):
-    """
-    Saves image compressed data into .huff file
-    including all 3 channel trees + dimensions +
-    original extension — so it can be decompressed later.
-    """
     encoded_R = compressed_data["encoded_R"]
     encoded_G = compressed_data["encoded_G"]
     encoded_B = compressed_data["encoded_B"]
 
-    # Bit pack each channel
     bytes_R = bytes(get_byte_array(
         pad_encoded_text(encoded_R)))
     bytes_G = bytes(get_byte_array(
@@ -213,15 +211,8 @@ def save_image_huff(compressed_data, huff_path,
         pickle.dump(package, f)
 
 
-# ─────────────────────────────────────
-# TEXT / ANY FILE COMPRESSION
-# ─────────────────────────────────────
-
+# ── LOSSLESS ANY FILE ──
 def handle_any_file(upload_path, filename, start_time):
-    """
-    Works for ANY file — txt, pdf, docx, etc.
-    Reads as binary — no data lost.
-    """
     with open(upload_path, 'rb') as f:
         data = f.read()
 
@@ -250,11 +241,9 @@ def handle_any_file(upload_path, filename, start_time):
     os.makedirs(
         os.path.dirname(huff_path), exist_ok=True)
 
-    # Save with tree + extension inside
     save_compressed_file(
         encoded, root, huff_path, extension)
 
-    # Save restored file
     restored_filename = 'restored_' + filename
     restored_path     = os.path.join(
         settings.MEDIA_ROOT, 'restored', restored_filename)
@@ -272,13 +261,14 @@ def handle_any_file(upload_path, filename, start_time):
 
     return {
         'success'           : True,
-        'file_type'         : 'text',
+        'mode'              : 'lossless',
+        'file_type'         : 'file',
         'filename'          : filename,
         'original_bits'     : original_bits,
         'compressed_bits'   : actual_compressed_bits,
         'compression_ratio' : compression_ratio,
         'reduction'         : actual_reduction,
-        'psnr'              : '∞ dB',
+        'psnr' : 'N/A',
         'execution_time'    : exec_time,
         'lossless'          : match,
         'original_chars'    : len(data),
@@ -288,33 +278,121 @@ def handle_any_file(upload_path, filename, start_time):
     }
 
 
-# ─────────────────────────────────────
-# .HUFF FILE DECOMPRESSION
-# ─────────────────────────────────────
+# ── LOSSY IMAGE ──
+def handle_lossy_image(upload_path, filename,
+                       start_time, request):
+    quality   = int(request.POST.get('quality', 40))
+    quality   = max(10, min(95, quality))
+    base_name = filename.rsplit('.', 1)[0]
 
+    compressed_filename = 'lossy_' + base_name + '.jpg'
+    compressed_path     = os.path.join(
+        settings.MEDIA_ROOT, 'compressed', compressed_filename)
+    os.makedirs(
+        os.path.dirname(compressed_path), exist_ok=True)
+
+    img = Image.open(upload_path).convert('RGB')
+    img.save(compressed_path, format='JPEG', quality=quality)
+
+    original_size   = os.path.getsize(upload_path)
+    compressed_size = os.path.getsize(compressed_path)
+    reduction       = round(
+        (1 - compressed_size / original_size) * 100, 2)
+    ratio           = round(original_size / compressed_size, 4)
+    exec_time       = round(time.time() - start_time, 2)
+
+    return {
+        'success'           : True,
+        'mode'              : 'lossy',
+        'file_type'         : 'lossy_image',
+        'filename'          : filename,
+        'original_bits'     : original_size * 8,
+        'compressed_bits'   : compressed_size * 8,
+        'compression_ratio' : ratio,
+        'reduction'         : reduction,
+        'psnr'              : 'N/A',
+        'execution_time'    : exec_time,
+        'quality'           : quality,
+        'lossless'          : False,
+        'original_url'      : f'/download/original/{filename}/',
+        'compressed_url'    : f'/download/compressed/{compressed_filename}/',
+    }
+
+# ── LOSSY TEXT ──
+def handle_lossy_text(upload_path, filename, start_time):
+    with open(upload_path, 'r',
+              encoding='utf-8', errors='ignore') as f:
+        original_text = f.read()
+
+    if not original_text:
+        return {'error': 'File is empty'}
+
+    compressed_text = original_text
+    compressed_text = '\n'.join(
+        line.rstrip()
+        for line in compressed_text.splitlines()
+    )
+    compressed_text = compressed_text.replace('\t', ' ')
+    compressed_text = re.sub(r' {2,}', ' ', compressed_text)
+    compressed_text = re.sub(r'\n{3,}', '\n\n', compressed_text)
+    compressed_text = compressed_text.strip()
+
+    original_size   = len(original_text.encode('utf-8'))
+    compressed_size = len(compressed_text.encode('utf-8'))
+    reduction       = round(
+        (1 - compressed_size / original_size) * 100, 2)
+    ratio           = round(
+        original_size / compressed_size, 4) \
+        if compressed_size > 0 else 1.0
+    exec_time       = round(time.time() - start_time, 2)
+
+    base_name           = filename.rsplit('.', 1)[0]
+    compressed_filename = 'lossy_' + filename
+    compressed_path     = os.path.join(
+        settings.MEDIA_ROOT, 'compressed', compressed_filename)
+    os.makedirs(
+        os.path.dirname(compressed_path), exist_ok=True)
+
+    with open(compressed_path, 'w', encoding='utf-8') as f:
+        f.write(compressed_text)
+
+    return {
+        'success'           : True,
+        'mode'              : 'lossy',
+        'file_type'         : 'lossy_text',
+        'filename'          : filename,
+        'original_bits'     : original_size * 8,
+        'compressed_bits'   : compressed_size * 8,
+        'compression_ratio' : ratio,
+        'reduction'         : reduction,
+        'psnr'              : 'N/A',
+        'execution_time'    : exec_time,
+        'original_chars'    : len(original_text),
+        'compressed_chars'  : len(compressed_text),
+        'lossless'          : False,
+        'original_url'      : f'/download/original/{filename}/',
+        'compressed_url'    : f'/download/compressed/{compressed_filename}/',
+    }
+
+
+# ── DECOMPRESS .huff ──
 def handle_huff(upload_path, filename, start_time):
-    """
-    Detects if .huff is image or text type
-    and routes to correct decompressor.
-    """
     try:
         with open(upload_path, 'rb') as f:
             package = pickle.load(f)
     except Exception:
         return {
             'error': (
-                'This .huff file was created by an '
-                'older version of this tool and cannot '
-                'be decompressed. Please compress your '
-                'original file again using the current '
-                'version to get a compatible .huff file.'
+                'This .huff file was created by an older '
+                'version of this tool. Please compress '
+                'your original file again to get a '
+                'compatible .huff file.'
             )
         }
 
     base_name = filename.rsplit('.', 1)[0]
     exec_time = round(time.time() - start_time, 2)
 
-    # Route based on type stored inside .huff
     if package.get('type') == 'image':
         return handle_huff_image(
             package, base_name,
@@ -327,10 +405,6 @@ def handle_huff(upload_path, filename, start_time):
 
 def handle_huff_image(package, base_name,
                       filename, upload_path, exec_time):
-    """
-    Decompresses an image .huff file
-    back to a viewable image.
-    """
     root_R             = package['root_R']
     root_G             = package['root_G']
     root_B             = package['root_B']
@@ -339,7 +413,6 @@ def handle_huff_image(package, base_name,
     original_extension = package.get(
         'original_extension', 'png')
 
-    # Convert packed bytes back to bit strings
     bit_R = remove_padding(
         bytes_to_bitstring(package['bytes_R']))
     bit_G = remove_padding(
@@ -347,42 +420,30 @@ def handle_huff_image(package, base_name,
     bit_B = remove_padding(
         bytes_to_bitstring(package['bytes_B']))
 
-    # Decode each channel
     R = decode_text(bit_R, root_R)
     G = decode_text(bit_G, root_G)
     B = decode_text(bit_B, root_B)
 
-    # Reconstruct image from pixels
-    R_2d = np.array(R, dtype=np.uint8).reshape(
-        height, width)
-    G_2d = np.array(G, dtype=np.uint8).reshape(
-        height, width)
-    B_2d = np.array(B, dtype=np.uint8).reshape(
-        height, width)
+    R_2d = np.array(R, dtype=np.uint8).reshape(height, width)
+    G_2d = np.array(G, dtype=np.uint8).reshape(height, width)
+    B_2d = np.array(B, dtype=np.uint8).reshape(height, width)
 
     img_array = np.stack([R_2d, G_2d, B_2d], axis=2)
     img       = Image.fromarray(img_array, mode='RGB')
 
-    # Map extension to Pillow format
     format_map = {
-        'jpg'  : 'JPEG',
-        'jpeg' : 'JPEG',
-        'png'  : 'PNG',
-        'bmp'  : 'BMP',
-        'webp' : 'WEBP',
-        'tiff' : 'TIFF',
+        'jpg' : 'JPEG', 'jpeg': 'JPEG',
+        'png' : 'PNG',  'bmp' : 'BMP',
+        'webp': 'WEBP', 'tiff': 'TIFF',
     }
-    save_format = format_map.get(
-        original_extension, 'PNG')
+    save_format = format_map.get(original_extension, 'PNG')
 
     restored_filename = 'decompressed_' + \
-                        base_name + \
-                        '.' + original_extension
-    restored_path = os.path.join(
+                        base_name + '.' + original_extension
+    restored_path     = os.path.join(
         settings.MEDIA_ROOT, 'restored', restored_filename)
     os.makedirs(
         os.path.dirname(restored_path), exist_ok=True)
-
     img.save(restored_path, format=save_format)
 
     huff_size     = os.path.getsize(upload_path)
@@ -394,8 +455,7 @@ def handle_huff_image(package, base_name,
         'filename'          : filename,
         'original_bits'     : huff_size * 8,
         'compressed_bits'   : restored_size * 8,
-        'compression_ratio' : round(
-            restored_size / huff_size, 4),
+        'compression_ratio' : round(restored_size / huff_size, 4),
         'reduction'         : 0,
         'psnr'              : '∞ dB',
         'execution_time'    : exec_time,
@@ -407,26 +467,17 @@ def handle_huff_image(package, base_name,
 
 def handle_huff_text(package, base_name,
                      filename, upload_path, exec_time):
-    """
-    Decompresses a text/file .huff file
-    back to original format.
-    """
     encoded_bytes      = package['encoded_bytes']
     root               = package['tree']
-    original_extension = package.get(
-        'original_extension', 'bin')
+    original_extension = package.get('original_extension', 'bin')
 
-    # Convert bytes → bit string → remove padding
     bit_string = bytes_to_bitstring(encoded_bytes)
     encoded    = remove_padding(bit_string)
-
-    # Decode back to original bytes
-    decoded = decode_text(encoded, root)
+    decoded    = decode_text(encoded, root)
 
     restored_filename = 'decompressed_' + \
-                        base_name + \
-                        '.' + original_extension
-    restored_path = os.path.join(
+                        base_name + '.' + original_extension
+    restored_path     = os.path.join(
         settings.MEDIA_ROOT, 'restored', restored_filename)
     os.makedirs(
         os.path.dirname(restored_path), exist_ok=True)
@@ -443,8 +494,7 @@ def handle_huff_text(package, base_name,
         'filename'          : filename,
         'original_bits'     : huff_size * 8,
         'compressed_bits'   : restored_size * 8,
-        'compression_ratio' : round(
-            restored_size / huff_size, 4),
+        'compression_ratio' : round(restored_size / huff_size, 4),
         'reduction'         : 0,
         'psnr'              : '∞ dB',
         'execution_time'    : exec_time,

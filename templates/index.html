@@ -2,58 +2,173 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Huffman Coding Compression</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-          rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"
-          rel="stylesheet">
+body{
+    background:#f4f6f9 !important;
+    
+}
+
+.card{
+    transition:0.2s;
+}
+
+.card:hover{
+    transform:translateY(-2px);
+}
+
+.metric-card .card-body{
+    padding:30px 15px;
+}
+
+#imageSection img{
+    border-radius:0 0 20px 20px;
+}
+
+</style>
 </head>
-<body class="bg-light">
+<body class="bg-body-secondary d-flex flex-column min-vh-100" style="padding-top:70px;">
 
-<!-- Navbar -->
-<nav class="navbar navbar-dark bg-dark px-4 py-3">
-    <div class="d-flex align-items-center gap-2">
-        
-        <span class="navbar-brand mb-0 fw-bold fs-5">
-            Huffman Coding Compression Tool
-        </span>
+
+<nav class="navbar bg-secondary px-4 py-3 shadow-sm fixed-top">
+    <div class="d-flex align-items-center gap-3">
+        <div>
+            <span class="navbar-brand mb-0 fw-bold fs-5 text-white">
+                Lossless and Lossy Compression
+            </span>
+        </div>
     </div>
+    
 </nav>
 
-<!-- Main Container -->
-<div class="container py-4" style="max-width:860px">
+<main class="container-fluid py-4 px-4 flex-grow-1"
+      style="max-width:1400px">
 
-    <!-- Title -->
+    
     <div class="text-center mb-4">
-        <h2 class="fw-bold">File Compression</h2>
-        <p class="text-muted">
-            Upload any file or image to compress
-        </p>
+        <h2 class="fw-bold text-dark">Compression Tool</h2>
     </div>
 
-    <!-- Upload Zone -->
-    <div class="card shadow-sm mb-3">
+    <div class="card border-0 shadow-sm border-0 bg-white rounded-4 mb-3">
+        <div class="card-body bg-white rounded-4 py-2 px-3">
+            <div class="row g-3 align-items-center">
+
+                <div class="col-auto">
+                    <span class="fw-bold text-dark small">
+                        <i class="bi bi-sliders me-1"></i>
+                        Compression Mode:
+                    </span>
+                </div>
+
+                <div class="col-auto">
+                    <div class="form-check form-check-inline mb-0">
+                        <input class="form-check-input"
+                               type="radio"
+                               name="compressionMode"
+                               id="modeLossless"
+                               value="lossless"
+                               checked
+                               onchange="updateMode()">
+                        <label class="form-check-label fw-semibold"
+                               for="modeLossless">
+                            <i class="bi bi-lock-fill
+                                       text-dark me-1"></i>
+                            Lossless 
+                        </label>
+                    </div>
+                </div>
+
+               <div class="col-auto">
+                    <div class="form-check form-check-inline mb-0">
+                        <input class="form-check-input"
+                               type="radio"
+                               name="compressionMode"
+                               id="modeLossy"
+                               value="lossy"
+                               onchange="updateMode()">
+                        <label class="form-check-label fw-semibold"
+                               for="modeLossy">
+                            Lossy
+                        </label>
+                    </div>
+                </div>
+
+                <div class="col-auto d-none" id="qualitySliderRow">
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="small fw-semibold text-muted mb-0">
+                            Quality:
+                        </label>
+                        <input type="range"
+                               class="form-range"
+                               id="qualitySlider"
+                               min="10" max="95"
+                               value="40"
+                               step="5"
+                               style="width:120px"
+                               oninput="document.getElementById('qualityValue').textContent = this.value">
+                        <span class="badge bg-secondary rounded-pill"
+                              id="qualityValue">40</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-primary border-2
+                rounded-4 shadow-sm border-0 bg-white mb-3">
         <div class="card-body p-4 text-center"
              id="dropZone"
              onclick="document.getElementById('fileInput').click()"
              ondragover="handleDragOver(event)"
              ondragleave="handleDragLeave(event)"
              ondrop="handleDrop(event)"
-             style="cursor:pointer;
-                    border:2px dashed #0d6efd;
-                    border-radius:10px">
+             style="cursor:pointer">
 
-            <i class="bi bi-cloud-arrow-up-fill
-                       text-primary display-4 mb-3 d-block"></i>
+            <div class="bg-primary bg-opacity-10
+                        rounded-circle d-inline-flex
+                        align-items-center
+                        justify-content-center mb-3"
+                 style="width:72px;height:72px">
+                <i class="bi bi-cloud-arrow-up-fill
+                           text-primary fs-2"></i>
+            </div>
+
             <h5 class="fw-bold mb-1">
                 Drag and Drop your file here
             </h5>
-            <p class="text-muted small mb-3">
+            <p class="text-muted small mb-4">
                 or click to browse from your computer
             </p>
+
+            <div class="d-flex gap-2
+                        justify-content-center flex-wrap"
+                 id="badgesLossless">
+                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark border border-secondary border-opacity-25">.txt</span>
+                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark border border-secondary border-opacity-25">.pdf</span>
+                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark border border-secondary border-opacity-25">.png</span>
+                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark border border-secondary border-opacity-25">.jpg</span>
+                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark border border-secondary border-opacity-25">.bmp</span>
+                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark border border-secondary border-opacity-25">.docx</span>
+                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark border border-secondary border-opacity-25">.webp</span>
+                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark border border-secondary">.huff ↩</span>
+            </div>
+
+            <div class="d-flex gap-2
+                        justify-content-center flex-wrap d-none"
+                 id="badgesLossy">
+                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark border border-secondary border-opacity-25">.txt</span>
+                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark border border-secondary border-opacity-25">.jpg</span>
+                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark border border-secondary border-opacity-25">.jpeg</span>
+                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark border border-secondary border-opacity-25">.png</span>
+                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark border border-secondary border-opacity-25">.bmp</span>
+                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark border border-secondary border-opacity-25">.webp</span>
+                
+            </div>
 
             <input type="file"
                    id="fileInput"
@@ -62,155 +177,165 @@
         </div>
     </div>
 
-    <!-- File Selected -->
-    <div class="alert alert-info
-                d-flex align-items-center
-                gap-2 d-none"
-         id="fileSelected">
-        <i class="bi bi-file-earmark-fill"></i>
-        <span id="selectedFileName"></span>
-    </div>
+    <div class="card border-0 shadow-sm border-0 bg-white rounded-3 d-none"
+     id="fileSelected">
+    <div class="card-body d-flex align-items-center gap-3 py-3">
+        <div class="bg-secondary bg-opacity-10 rounded-circle
+                    d-flex align-items-center justify-content-center"
+             style="width:40px;height:40px">
+            <i class="bi bi-file-earmark-fill text-secondary"></i>
+        </div>
 
-    <!-- Buttons -->
-    <div class="d-flex gap-2
-                justify-content-center mb-2">
-        <button class="btn btn-primary px-4"
+        <div>
+            <div class="small text-muted">
+                Selected File
+            </div>
+            <div class="fw-semibold"
+                 id="selectedFileName"></div>
+        </div>
+    </div>
+</div>
+
+    <div class="d-flex gap-2 justify-content-center mb-2">
+        <button class="btn btn-outline-secondary px-5 rounded-pill"
                 id="compressBtn"
                 onclick="startCompression()"
                 disabled>
-            <i class="bi bi-lightning-fill me-2"></i>
-            Compress File
+            Compress
         </button>
-        <button class="btn btn-outline-secondary px-4"
+        <button class="btn btn-outline-secondary
+                       rounded-pill px-4"
                 onclick="resetAll()">
             <i class="bi bi-arrow-counterclockwise me-2"></i>
             Reset
         </button>
     </div>
 
-    <!-- Status -->
-    <p class="text-center text-muted small mb-3"
+    <p class="text-center text-muted small mb-4"
        id="statusMsg">
-        Select a file to get started
+        <i><b>Please Select a File To Get Started </b></i>
     </p>
 
-    <!-- Progress Bars -->
-    <div class="card shadow-sm mb-3 d-none"
+    <div class="card rounded-4 shadow-sm border-0 bg-white mb-3
+                d-none border-0"
          id="progressSection">
-        <div class="card-header bg-white fw-bold">
-            <i class="bi bi-activity me-2 text-primary"></i>
+        <div class="card-header bg-white rounded-top-4
+                    border-bottom border-primary
+                    border-opacity-25 fw-bold text-dark">
+            <i class="bi bi-activity me-2"></i>
             Compression Progress
         </div>
-        <div class="card-body">
-
+        <div class="card-body bg-white rounded-bottom-4 p-4">
             <div class="mb-3">
-                <div class="d-flex
-                            justify-content-between
+                <div class="d-flex justify-content-between
                             small text-muted mb-1">
                     <span>
                         <i class="bi bi-circle-fill
                                   text-danger me-1"></i>
-                        R Channel (Red)
+                        Red Channel 
                     </span>
                     <span id="rPct">0%</span>
                 </div>
-                <div class="progress" style="height:12px">
-                    <div class="progress-bar bg-danger"
-                         id="rBar"
-                         style="width:0%"></div>
+                <div class="progress rounded-pill"
+                     style="height:10px">
+                    <div class="progress-bar bg-danger
+                                rounded-pill"
+                         id="rBar" style="width:0%"></div>
                 </div>
             </div>
-
             <div class="mb-3">
-                <div class="d-flex
-                            justify-content-between
+                <div class="d-flex justify-content-between
                             small text-muted mb-1">
                     <span>
                         <i class="bi bi-circle-fill
                                   text-success me-1"></i>
-                        G Channel (Green)
+                        Green Channel
                     </span>
                     <span id="gPct">0%</span>
                 </div>
-                <div class="progress" style="height:12px">
-                    <div class="progress-bar bg-success"
-                         id="gBar"
-                         style="width:0%"></div>
+                <div class="progress rounded-pill"
+                     style="height:10px">
+                    <div class="progress-bar bg-success
+                                rounded-pill"
+                         id="gBar" style="width:0%"></div>
                 </div>
             </div>
-
-            <div class="mb-3">
-                <div class="d-flex
-                            justify-content-between
+            <div class="mb-1">
+                <div class="d-flex justify-content-between
                             small text-muted mb-1">
                     <span>
                         <i class="bi bi-circle-fill
                                   text-primary me-1"></i>
-                        B Channel (Blue)
+                        Blue Channel 
                     </span>
                     <span id="bPct">0%</span>
                 </div>
-                <div class="progress" style="height:12px">
-                    <div class="progress-bar bg-primary"
-                         id="bBar"
-                         style="width:0%"></div>
+                <div class="progress rounded-pill"
+                     style="height:10px">
+                    <div class="progress-bar bg-primary
+                                rounded-pill"
+                         id="bBar" style="width:0%"></div>
                 </div>
             </div>
-
         </div>
     </div>
 
-    <!-- Metric Cards -->
-    <div class="row g-3 mb-3 d-none"
-         id="metricsSection">
+    <div class="row g-2 mb-3 d-none" id="metricsSection">
 
-        <div class="col-6 col-md-3">
-            <div class="card shadow-sm
-                        text-center border-0 h-100">
-                <div class="card-body">
-                    <div class="text-muted small mb-1">
+        <div  class="col-12 col-md-6 col-lg-3">
+            <div class="card metric-card
+            border-0 shadow-sm
+            rounded-4 text-center h-100">
+                <div class="card-body py-4">
+                    <div class="text-muted small mb-2">
+                        <i class=""></i>
                         Original Size
                     </div>
-                    <div class="fw-bold fs-5 text-primary"
+                    <div class="fw-bold fs-5 text-dark"
                          id="origSize">—</div>
                 </div>
             </div>
         </div>
 
-        <div class="col-6 col-md-3">
-            <div class="card shadow-sm
-                        text-center border-0 h-100">
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card metric-card
+            border-0 shadow-sm
+            rounded-4 text-center h-100">
                 <div class="card-body">
-                    <div class="text-muted small mb-1">
+                    <div class="text-muted small mb-2">
+                        <i class=""></i>
                         Compressed Size
                     </div>
-                    <div class="fw-bold fs-5 text-success"
+                    <div class="fw-bold fs-5 text-dark"
                          id="compSize">—</div>
                 </div>
             </div>
         </div>
 
-        <div class="col-6 col-md-3">
-            <div class="card shadow-sm
-                        text-center border-0 h-100">
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card border-0shadow-sm border-0 bg-white
+                        rounded-4 text-center h-100">
                 <div class="card-body">
-                    <div class="text-muted small mb-1">
+                    <div class="text-muted small mb-2">
+                        <i class=""></i>
                         Size Reduction
                     </div>
-                    <div class="fw-bold fs-5 text-warning"
+                    <div class="fw-bold fs-5 text-dark"
                          id="reduction">—</div>
                 </div>
             </div>
         </div>
 
-        <div class="col-6 col-md-3">
-            <div class="card shadow-sm
-                        text-center border-0 h-100">
+        <div class="col-12 col-md-6 col-lg-3">
+           <div class="card metric-card
+            border-0 shadow-sm
+            rounded-4 text-center h-100">
                 <div class="card-body">
-                    <div class="text-muted small mb-1">
+                    <div class="text-muted small mb-2">
+                        <i class=""></i>
                         PSNR
                     </div>
-                    <div class="fw-bold fs-5"
+                    <div class="fw-bold fs-4"
                          style="color:#7c3aed"
                          id="psnr">—</div>
                 </div>
@@ -219,15 +344,15 @@
 
     </div>
 
-    <!-- Extra Stats -->
-    <div class="row g-3 mb-3 d-none"
-         id="extraStatsSection">
+    <div class="row g-2 mb-3 d-none" id="extraStatsSection">
 
-        <div class="col-md-4">
-            <div class="card shadow-sm
-                        text-center border-0">
+        <div class="col-12 col-md-6 col-lg-3">
+           <div class="card metric-card
+            border-0 shadow-sm
+            rounded-4 text-center h-100">
                 <div class="card-body">
-                    <div class="text-muted small mb-1">
+                    <div class="text-muted small mb-2">
+                        <i class=""></i>
                         Compression Ratio
                     </div>
                     <div class="fw-bold fs-5"
@@ -236,11 +361,13 @@
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card shadow-sm
-                        text-center border-0">
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card metric-card
+            border-0 shadow-sm
+            rounded-4 text-center h-100">
                 <div class="card-body">
-                    <div class="text-muted small mb-1">
+                    <div class="text-muted small mb-2">
+                        <i class=""></i>
                         Execution Time
                     </div>
                     <div class="fw-bold fs-5"
@@ -249,181 +376,189 @@
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card shadow-sm
-                        text-center border-0">
+        <div class="col-12 col-md-6 col-lg-3">
+           <div class="card metric-card
+            border-0 shadow-sm
+            rounded-4 text-center h-100">
                 <div class="card-body">
-                    <div class="text-muted small mb-1">
+                    <div class="text-muted small mb-2">
+                        <i class=""></i>
                         Lossless
                     </div>
-                    <div class="fw-bold fs-5 text-success"
-                         id="lossless"> Yes</div>
+                    <div class="fw-bold fs-5"
+                         id="lossless">—</div>
                 </div>
             </div>
         </div>
 
     </div>
 
-    <!-- Image Comparison -->
-    <div class="row g-3 mb-3 d-none"
-         id="imageSection">
+    <div class="row g-2 mb-3 d-none" id="imageSection">
 
         <div class="col-md-6">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-white fw-bold">
-                    <i class="bi bi-image me-2 text-primary"></i>
+            <div class="card border-0 shadow-sm border-0 bg-white rounded-4">
+                <div class="card-header bg-white
+                            rounded-top-4 fw-semibold
+                            text-primary">
+                    <i class="bi bi-image me-2"></i>
                     Original Image
                 </div>
-                <img id="originalImg"
-                     src=""
-                     alt="Original"
-                     class="card-img-bottom"
-                     style="height:220px; object-fit:cover">
+                <img id="originalImg" src="" alt="Original"
+                     class="card-img-bottom rounded-bottom-4"
+                     style="
+                            height:300px;
+                            object-fit:contain;
+                            background:#f8f9fa;
+                            padding:10px;
+                            ">
             </div>
         </div>
 
         <div class="col-md-6">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-white fw-bold
+            <div class="card border-0 shadow-sm border-0 bg-white rounded-4">
+                <div class="card-header bg-white
+                            rounded-top-4 fw-semibold
                             d-flex justify-content-between
-                            align-items-center">
+                            align-items-center"
+                     id="compImgHeader">
                     <span>
-                        <i class="bi bi-image-fill me-2 text-success"></i>
-                        Restored Image
+                        <i class="bi bi-image-fill
+                                  me-2 text-success"></i>
+                        Compressed Image
                     </span>
-                    <span class="badge bg-success">
-                        ✅ Identical
+                    <span class="badge bg-success rounded-pill"
+                          id="compImgBadge">
+                        Viewable
                     </span>
                 </div>
-                <img id="restoredImg"
-                     src=""
-                     alt="Restored"
-                     class="card-img-bottom"
-                     style="height:220px; object-fit:cover">
+                <img id="compressedImg" src="" alt="Compressed"
+                     class="card-img-bottom rounded-bottom-4"
+                     style="
+                        height:300px;
+                        object-fit:contain;
+                        background:#f8f9fa;
+                        padding:10px;">
             </div>
         </div>
 
     </div>
 
-    <!-- Comparison Chart -->
-    <div class="card shadow-sm mb-3 d-none"
-         id="compareSection">
-        <div class="card-header bg-white fw-bold">
-            <i class="bi bi-bar-chart-fill me-2 text-primary"></i>
-            Comparison vs Other Methods
-        </div>
-        <div class="card-body">
+    <div class="d-none d-flex
+            justify-content-center
+            gap-3
+            flex-wrap
+            mb-4"
+     id="downloadSection">
 
-            <div class="mb-3">
-                <div class="d-flex justify-content-between
-                            small fw-bold mb-1">
-                    <span>Our Huffman</span>
-                    <span class="text-primary" id="hPct">0%</span>
-                </div>
-                <div class="progress" style="height:28px">
-                    <div class="progress-bar bg-primary"
-                         id="hBar"
-                         style="width:0%">Huffman</div>
-                </div>
-            </div>
-
-            <div class="mb-3">
-                <div class="d-flex justify-content-between
-                            small fw-bold mb-1">
-                    <span>gzip</span>
-                    <span style="color:#7c3aed">~45%</span>
-                </div>
-                <div class="progress" style="height:28px">
-                    <div class="progress-bar"
-                         style="width:45%; background:#7c3aed">
-                        gzip ~45%
-                    </div>
-                </div>
-            </div>
-
-            <div class="mb-1">
-                <div class="d-flex justify-content-between
-                            small fw-bold mb-1">
-                    <span>JPEG</span>
-                    <span class="text-success">~65%</span>
-                </div>
-                <div class="progress" style="height:28px">
-                    <div class="progress-bar bg-success"
-                         style="width:65%">
-                        JPEG ~65%
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- Download Buttons -->
-    <div class="d-none gap-2 flex-wrap mb-4"
-         id="downloadSection">
-
-        <a class="btn btn-outline-primary"
-           id="downloadOriginal"
-           href="#"
-           download>
+        <a class="btn btn-outline-secondary rounded-pill px-4"
+           id="downloadOriginal" href="#" download>
             <i class="bi bi-download me-2"></i>
             Download Original
         </a>
 
-        <a class="btn btn-outline-success"
-           id="downloadCompressed"
-           href="#"
-           download>
+        <a class="btn btn-outline-secondary rounded-pill px-4"
+           id="downloadCompressed" href="#" download>
             <i class="bi bi-download me-2"></i>
             Download Compressed
         </a>
 
-        <a class="btn btn-outline-warning"
-           id="downloadRestored"
-           href="#"
-           download>
+        <a class="btn btn-outline-secondary rounded-pill px-4"
+           id="downloadRestored" href="#" download
+           style="display:none">
             <i class="bi bi-download me-2"></i>
             Download Restored
         </a>
 
     </div>
-<div class="alert alert-secondary mt-2 small"
-     id="compressedNote"
-     style="display:none">
-    <i class="bi bi-info-circle me-1"></i>
-    The compressed file (.huff) contains raw binary data and cannot
-    be opened as an image. It can only be restored using this tool's
-    decompression algorithm.
-</div>
+
+ <div class="alert alert-secondary rounded-4 small
+            d-flex justify-content-center
+            align-items-center gap-2 d-none"
+     id="infoNote">
+
+    <i class="bi bi-info-circle-fill"></i>
+
+    <span id="infoNoteText"></span>
 
 </div>
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js">
-</script>
+
+</main>
+<footer class="w-100 bg-dark bg-opacity-10 text-center
+               py-3 border-top border-secondary
+               border-opacity-25">
+    <small class="text-muted">
+        <i class=""></i>
+        Supporting Lossless Huffman Coding and Readable/Viewable Lossy Compression
+    </small>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-let selectedFile = null;
+let selectedFile     = null;
 let progressInterval = null;
 let rVal = 0, gVal = 0, bVal = 0;
 
 const IMAGE_EXTENSIONS = [
-    'jpg', 'jpeg', 'png', 'bmp', 'webp', 'tiff'
+    'jpg','jpeg','png','bmp','webp'
 ];
 
-// ── Drag and Drop ──
+// ── Mode selector ──
+function getMode() {
+    return document.querySelector(
+        'input[name="compressionMode"]:checked').value;
+}
+
+function getQuality() {
+    return parseInt(
+        document.getElementById('qualitySlider').value);
+}
+
+function updateMode() {
+    let mode = getMode();
+
+    if (mode === 'lossless') {
+        document.getElementById('badgesLossless')
+                .classList.remove('d-none');
+        document.getElementById('badgesLossy')
+                .classList.add('d-none');
+        document.getElementById('qualitySliderRow')
+                .classList.add('d-none');
+    } else {
+        document.getElementById('badgesLossless')
+                .classList.add('d-none');
+        document.getElementById('badgesLossy')
+                .classList.remove('d-none');
+        document.getElementById('qualitySliderRow')
+                .classList.remove('d-none');
+    }
+
+    let ext = selectedFile ?
+              selectedFile.name.split('.').pop().toLowerCase()
+              : '';
+    if (selectedFile && ext !== 'huff') {
+        document.getElementById('compressBtn').innerHTML =
+            mode === 'lossy' ?
+            'Compress ' :
+            'Compress';
+    }
+}
+
 function handleDragOver(e) {
     e.preventDefault();
-    document.getElementById('dropZone').style.background = '#e8f0fe';
+    document.getElementById('dropZone')
+            .classList.add('bg-primary', 'bg-opacity-10');
 }
 
 function handleDragLeave() {
-    document.getElementById('dropZone').style.background = '';
+    document.getElementById('dropZone')
+            .classList.remove('bg-primary', 'bg-opacity-10');
 }
 
 function handleDrop(e) {
     e.preventDefault();
-    document.getElementById('dropZone').style.background = '';
-
+    document.getElementById('dropZone')
+            .classList.remove('bg-primary', 'bg-opacity-10');
     if (e.dataTransfer.files.length > 0) {
         setFile(e.dataTransfer.files[0]);
     }
@@ -431,87 +566,98 @@ function handleDrop(e) {
 
 // ── File Selection ──
 function handleFileSelect(e) {
-    if (e.target.files[0]) {
-        setFile(e.target.files[0]);
-    }
+    if (e.target.files[0]) setFile(e.target.files[0]);
 }
 
 function setFile(file) {
     selectedFile = file;
-
-    document.getElementById('selectedFileName').textContent =
-        file.name + ' (' + formatBytes(file.size) + ')';
-
+    document.getElementById('selectedFileName')
+            .textContent = file.name +
+            ' (' + formatBytes(file.size) + ')';
     document.getElementById('fileSelected')
-        .classList.remove('d-none');
+            .classList.remove('d-none');
+    document.getElementById('compressBtn').disabled = false;
 
-    document.getElementById('compressBtn')
-        .disabled = false;
-
-    let ext = file.name.split('.').pop().toLowerCase();
+    let ext  = file.name.split('.').pop().toLowerCase();
+    let mode = getMode();
 
     if (ext === 'huff') {
+        if (mode === 'lossy') {
+            showError(
+                'Lossy mode does not support .huff files. ' +
+                'Switch to Lossless mode to decompress.');
+            document.getElementById('compressBtn').disabled = true;
+            return;
+        }
         document.getElementById('compressBtn').innerHTML =
-            '<i class="bi bi-arrow-counterclockwise me-2"></i>Decompress File';
-
+            '<i class="bi bi-arrow-counterclockwise me-2"></i>' +
+            'Decompress';
         document.getElementById('statusMsg').textContent =
             '.huff file ready — click Decompress!';
     } else {
-        document.getElementById('compressBtn').innerHTML =
-            '<i class="bi bi-lightning-fill me-2"></i>Compress File';
-
+        updateMode();
         document.getElementById('statusMsg').textContent =
-            'File ready — click Compress!';
+            'Click Compress !';
     }
 }
 
-// ── Format Bytes ──
 function formatBytes(bytes) {
     if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024)
+    if (bytes < 1048576)
         return (bytes / 1024).toFixed(2) + ' KB';
-
-    return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+    return (bytes / 1048576).toFixed(2) + ' MB';
 }
 
 // ── Start Compression ──
 function startCompression() {
-
     if (!selectedFile) return;
 
-    document.getElementById('compressBtn')
-        .disabled = true;
+    let ext  = selectedFile.name.split('.').pop().toLowerCase();
+    let mode = getMode();
 
+    if (mode === 'lossy' && ext === 'huff') {
+        showError(
+            'Lossy mode does not support .huff files. ' +
+            'Switch to Lossless mode to decompress.');
+        return;
+    }
+
+    if (mode === 'lossy') {
+        if (!IMAGE_EXTENSIONS.includes(ext) && ext !== 'txt') {
+            showError(
+                'Lossy compression supports images ' +
+                '(.jpg .png .bmp .webp) ' +
+                'and .txt files only.');
+            return;
+        }
+    }
+
+    document.getElementById('compressBtn').disabled = true;
     document.getElementById('statusMsg').innerHTML =
         '<span class="spinner-border spinner-border-sm me-2"></span>' +
         'Processing... please wait';
 
-    // Hide everything first
+   ['progressSection','imageSection','infoNote'].forEach(id => {
+    let el = document.getElementById(id);
+    el.classList.add('d-none');
+    el.style.display = '';
+});
+
+    if (
+    mode === 'lossless' &&
+    IMAGE_EXTENSIONS.includes(ext) &&
+    ext !== 'huff'
+) {
     document.getElementById('progressSection')
-        .classList.add('d-none');
-
-    document.getElementById('imageSection')
-        .classList.add('d-none');
-
-    document.getElementById('compareSection')
-        .classList.add('d-none');
-
-    document.getElementById('compressedNote')
-        .style.display = 'none';
-
-    let ext = selectedFile.name.split('.').pop().toLowerCase();
-
-    // ONLY SHOW RGB FOR IMAGES
-    if (IMAGE_EXTENSIONS.includes(ext)) {
-
-        document.getElementById('progressSection')
             .classList.remove('d-none');
 
-        startProgress();
-    }
+    startProgress();
+}
 
     let formData = new FormData();
     formData.append('file', selectedFile);
+    formData.append('mode', mode);
+    formData.append('quality', getQuality());
 
     fetch('/compress/', {
         method: 'POST',
@@ -519,316 +665,301 @@ function startCompression() {
     })
     .then(r => r.json())
     .then(data => {
-
-        if (data.success) {
-            showResults(data);
-        } else {
-            showError(data.error || 'Unknown error');
-        }
-
+        if (data.success) showResults(data);
+        else showError(data.error || 'Unknown error');
     })
     .catch(err => showError(err.toString()));
 }
 
-// ── Progress Animation ──
 function startProgress() {
-
-    rVal = 0;
-    gVal = 0;
-    bVal = 0;
-
+    rVal = 0; gVal = 0; bVal = 0;
     progressInterval = setInterval(() => {
-
         if (rVal < 90) rVal += 3;
         if (gVal < 85) gVal += 2;
         if (bVal < 88) bVal += 2.5;
-
         updateBar('rBar', 'rPct', rVal);
         updateBar('gBar', 'gPct', gVal);
         updateBar('bBar', 'bPct', bVal);
-
     }, 150);
 }
 
 function updateBar(barId, pctId, val) {
-
     val = Math.min(Math.round(val), 100);
-
-    document.getElementById(barId).style.width =
-        val + '%';
-
-    document.getElementById(pctId).textContent =
-        val + '%';
+    document.getElementById(barId).style.width  = val + '%';
+    document.getElementById(pctId).textContent  = val + '%';
 }
 
-// ── Show Results ──
 function showResults(data) {
-
     clearInterval(progressInterval);
 
-    // ONLY COMPLETE RGB IF IMAGE
     if (data.file_type === 'image') {
+    updateBar('rBar', 'rPct', 100);
+    updateBar('gBar', 'gPct', 100);
+    updateBar('bBar', 'bPct', 100);
+}
 
-        updateBar('rBar', 'rPct', 100);
-        updateBar('gBar', 'gPct', 100);
-        updateBar('bBar', 'bPct', 100);
-
-    }
-
-    // ── .HUFF DECOMPRESSION ──
+    // ── DECOMPRESS ──
     if (data.file_type === 'decompress') {
-
         show('extraStatsSection');
-
         document.getElementById('compRatio')
-            .textContent =
-            data.compression_ratio + 'x';
-
+                .textContent = data.compression_ratio + 'x';
         document.getElementById('execTime')
-            .textContent =
-            data.execution_time + 's';
-
-        document.getElementById('lossless')
-            .textContent =
-            'Yes';
+                .textContent = data.execution_time + 's';
+        document.getElementById('lossless').innerHTML =
+            '<span class="text-success">Yes</span>';
 
         let dlSection =
             document.getElementById('downloadSection');
-
         dlSection.classList.remove('d-none');
         dlSection.style.display = 'flex';
 
         document.getElementById('downloadOriginal')
-            .style.display = 'none';
-
+                .style.display = 'none';
         document.getElementById('downloadCompressed')
-            .style.display = 'none';
-
+                .style.display = 'none';
         document.getElementById('downloadRestored')
-            .href = data.restored_url;
-
+                .style.display = 'inline-block';
         document.getElementById('downloadRestored')
-            .innerHTML =
-            '<i class="bi bi-download me-2"></i>' +
-            'Download Decompressed File';
+                .href = data.restored_url;
+        document.getElementById('downloadRestored')
+                .innerHTML =
+                '<i class="bi bi-download me-2"></i>' +
+                'Download Decompressed File';
+
+        showInfoNote(
+            'Decompression complete! ' +
+            'Your original file has been perfectly recovered.');
 
         document.getElementById('statusMsg').innerHTML =
             '<span class="text-success fw-bold">' +
-            ' Decompression complete!</span>';
-
-        document.getElementById('compressBtn')
-            .disabled = false;
-
+            'Decompression complete!</span>';
+        document.getElementById('compressBtn').disabled = false;
         return;
     }
 
-    let origKB =
-        (data.original_bits / 8 / 1024).toFixed(2) +
-        ' KB';
-
-    let compKB =
-        (data.compressed_bits / 8 / 1024).toFixed(2) +
-        ' KB';
-
     // ── METRICS ──
+    let origKB = (data.original_bits / 8 / 1024)
+                 .toFixed(2) + ' KB';
+    let compKB = (data.compressed_bits / 8 / 1024)
+                 .toFixed(2) + ' KB';
+
     show('metricsSection');
-
-    document.getElementById('origSize')
-        .textContent = origKB;
-
-    document.getElementById('compSize')
-        .textContent = compKB;
-
-    document.getElementById('reduction')
-        .textContent =
+    document.getElementById('origSize').textContent  = origKB;
+    document.getElementById('compSize').textContent  = compKB;
+    document.getElementById('reduction').textContent =
         data.reduction + '%';
+    document.getElementById('psnr').textContent = data.psnr;
 
-    // ONLY SHOW PSNR FOR IMAGES
-    if (data.file_type === 'image') {
-
-        document.getElementById('psnr')
-            .textContent =
-            data.psnr;
-
-    } else {
-
-        document.getElementById('psnr')
-            .textContent = 'N/A';
-
-    }
-
-    // ── EXTRA STATS ──
     show('extraStatsSection');
-
-    document.getElementById('compRatio')
-        .textContent =
+    document.getElementById('compRatio').textContent =
         data.compression_ratio + 'x';
-
-    document.getElementById('execTime')
-        .textContent =
+    document.getElementById('execTime').textContent  =
         data.execution_time + 's';
+    document.getElementById('lossless').innerHTML =
+        data.lossless !== false ?
+        '<span class="text-success">Yes</span>' :
+        '<span class="text-warning">No (Lossy)</span>';
 
-    document.getElementById('lossless')
-        .textContent =
-        ' Yes';
-
-    // ── DOWNLOADS ──
     let dlSection =
         document.getElementById('downloadSection');
-
     dlSection.classList.remove('d-none');
     dlSection.style.display = 'flex';
 
-    document.getElementById('downloadOriginal')
-        .style.display = 'inline-block';
-
-    document.getElementById('downloadCompressed')
-        .style.display = 'inline-block';
-
-    document.getElementById('downloadOriginal')
-        .href = data.original_url;
-
-    document.getElementById('downloadCompressed')
-        .href = data.compressed_url;
-
-    document.getElementById('downloadRestored')
-        .href = data.restored_url;
-
-    // ── IMAGE ONLY UI ──
+    // ── LOSSLESS IMAGE ──
     if (data.file_type === 'image') {
-
         show('imageSection');
-
         document.getElementById('originalImg')
-            .src = data.original_url;
+                .src = data.original_url;
+        document.getElementById('compressedImg')
+                .src = data.restored_url;
+        document.getElementById('compImgBadge')
+                .textContent = 'Identical';
+        document.getElementById('compImgBadge')
+                .className = 'badge bg-success rounded-pill';
 
-        document.getElementById('restoredImg')
-            .src = data.restored_url;
+        setDownloads(
+            data.original_url,
+            data.compressed_url,
+            data.restored_url,
+            'Download Original',
+            'Download Compressed (.huff)',
+            'Download Restored'
+        );
 
-        show('compareSection');
-
-        document.getElementById('compressedNote')
-            .style.display = 'block';
-
-        setTimeout(() => {
-
-            updateBar(
-                'hBar',
-                'hPct',
-                data.reduction
-            );
-
-            document.getElementById('hPct')
-                .textContent =
-                data.reduction + '%';
-
-        }, 400);
-
+        showInfoNote(
+            'Lossless compression complete! ' +
+            'The .huff file contains Huffman-encoded data. ' +
+            'Upload it back to decompress and recover ' +
+            'the original image perfectly.');
     }
-    else {
 
-        document.getElementById('imageSection')
-            .classList.add('d-none');
+    // ── LOSSLESS TEXT ──
+    else if (data.file_type === 'text') {
+        
 
-        document.getElementById('compareSection')
-            .classList.add('d-none');
+        setDownloads(
+            data.original_url,
+            data.compressed_url,
+            data.restored_url,
+            'Download Original',
+            'Download Compressed (.huff)',
+            'Download Restored'
+        );
 
-        document.getElementById('compressedNote')
-            .style.display = 'none';
+        showInfoNote(
+            'Lossless compression complete! ' +
+            'Upload the .huff file back to decompress ' +
+            'and recover your original file perfectly.');
+    }
+
+    // ── LOSSY IMAGE ──
+    else if (data.file_type === 'lossy_image') {
+        show('imageSection');
+        document.getElementById('originalImg')
+                .src = data.original_url;
+        document.getElementById('compressedImg')
+                .src = data.compressed_url;
+        document.getElementById('compImgBadge')
+                .textContent = 'Viewable .jpg (Q=' +
+                               data.quality + ')';
+        document.getElementById('compImgBadge')
+                .className =
+                'badge bg-warning text-dark rounded-pill';
+
+        
+       
+
+        setDownloads(
+            data.original_url,
+            data.compressed_url,
+            null,
+            'Download Original',
+            'Download Compressed (.jpg)',
+            null
+        );
+
+        showInfoNote(
+            'Lossy compression complete! ' +
+            'Compressed .jpg is directly viewable. ' +
+            'Quality=' + data.quality + ' — ' +
+            data.reduction + '% size reduction. ' +
+            'Lossy files cannot be decompressed back.');
+    }
+
+    // ── LOSSY TEXT ──
+    else if (data.file_type === 'lossy_text') {
+    
+
+        setDownloads(
+            data.original_url,
+            data.compressed_url,
+            null,
+            'Download Original',
+            'Download Compressed (.txt)',
+            null
+        );
+
+        showInfoNote(
+            'Lossy text compression complete! ' +
+            'Extra spaces and blank lines removed. ' +
+            'Original: ' + data.original_chars +
+            ' chars → Compressed: ' +
+            data.compressed_chars +
+            ' chars. Output is fully readable.');
     }
 
     document.getElementById('statusMsg').innerHTML =
         '<span class="text-success fw-bold">' +
         'Compression complete!</span>';
-
-    document.getElementById('compressBtn')
-        .disabled = false;
+    document.getElementById('compressBtn').disabled = false;
 }
 
-// ── Show Error ──
-function showError(msg) {
+// ── Helpers ──
+function setDownloads(origUrl, compUrl, restUrl,
+                      origLabel, compLabel, restLabel) {
+    let origBtn = document.getElementById('downloadOriginal');
+    let compBtn = document.getElementById('downloadCompressed');
+    let restBtn = document.getElementById('downloadRestored');
 
-    clearInterval(progressInterval);
+    if (origUrl) {
+        origBtn.href = origUrl;
+        origBtn.innerHTML =
+            '<i class="bi bi-download me-2"></i>' + origLabel;
+        origBtn.style.display = 'inline-block';
+    } else {
+        origBtn.style.display = 'none';
+    }
 
-    document.getElementById('statusMsg').innerHTML =
-        '<span class="text-danger">' +
-        'Error: ' + msg + '</span>';
+    if (compUrl) {
+        compBtn.href = compUrl;
+        compBtn.innerHTML =
+            '<i class="bi bi-download me-2"></i>' + compLabel;
+        compBtn.style.display = 'inline-block';
+    } else {
+        compBtn.style.display = 'none';
+    }
 
-    document.getElementById('compressBtn')
-        .disabled = false;
+    if (restUrl) {
+        restBtn.href = restUrl;
+        restBtn.innerHTML =
+            '<i class="bi bi-download me-2"></i>' + restLabel;
+        restBtn.style.display = 'inline-block';
+    } else {
+        restBtn.style.display = 'none';
+    }
 }
 
-// ── Helper ──
+function showInfoNote(text) {
+    let el = document.getElementById('infoNote');
+    el.classList.remove('d-none');
+    document.getElementById('infoNoteText').textContent = text;
+}
+
 function show(id) {
-    document.getElementById(id)
-        .classList.remove('d-none');
+    document.getElementById(id).classList.remove('d-none');
+}
+
+function showError(msg) {
+    clearInterval(progressInterval);
+    document.getElementById('statusMsg').innerHTML =
+        '<span class="text-danger">❌ ' + msg + '</span>';
+    document.getElementById('compressBtn').disabled = false;
 }
 
 // ── Reset ──
 function resetAll() {
-
     selectedFile = null;
-
     clearInterval(progressInterval);
 
-    [
-        'progressSection',
-        'metricsSection',
-        'extraStatsSection',
-        'imageSection',
-        'compareSection',
-        'fileSelected'
-    ].forEach(id => {
-
-        document.getElementById(id)
-            .classList.add('d-none');
-
+    ['progressSection','metricsSection',
+     'extraStatsSection','imageSection',
+     'compareSection','fileSelected','infoNote']
+    .forEach(id => {
+        document.getElementById(id).classList.add('d-none');
     });
 
-    let dlSection =
-        document.getElementById('downloadSection');
-
+    let dlSection = document.getElementById('downloadSection');
     dlSection.classList.add('d-none');
     dlSection.style.display = '';
 
-    document.getElementById('compressedNote')
-        .style.display = 'none';
-
-    ['rBar', 'gBar', 'bBar', 'hBar']
-    .forEach(id => {
-
-        document.getElementById(id)
-            .style.width = '0%';
-
+    ['rBar','gBar','bBar','hBar'].forEach(id => {
+        document.getElementById(id).style.width = '0%';
+    });
+    ['rPct','gPct','bPct','hPct'].forEach(id => {
+        document.getElementById(id).textContent = '0%';
     });
 
-    ['rPct', 'gPct', 'bPct', 'hPct']
-    .forEach(id => {
-
-        document.getElementById(id)
-            .textContent = '0%';
-
-    });
-
-    document.getElementById('compressBtn')
-        .disabled = true;
-
-    document.getElementById('statusMsg')
-        .textContent =
+    document.getElementById('compressBtn').disabled  = true;
+    document.getElementById('compressBtn').innerHTML =
+        'Compress';
+    document.getElementById('statusMsg').textContent =
         'Select a file to get started';
-
-    document.getElementById('fileInput')
-        .value = '';
-
+    document.getElementById('fileInput').value = '';
     document.getElementById('dropZone')
-        .style.background = '';
+            .classList.remove('bg-primary', 'bg-opacity-10');
 
-    document.getElementById('compressBtn')
-        .innerHTML =
-        '<i class="bi bi-lightning-fill me-2"></i>' +
-        'Compress File';
+    updateMode();
 }
 </script>
-
 </body>
 </html>
