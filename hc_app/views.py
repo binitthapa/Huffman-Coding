@@ -9,6 +9,7 @@ from django.shortcuts import render
 from django.http import JsonResponse, FileResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
+from hc_app.dct_compress import dct_compress_image
 
 from hc_app.huffman import (
     build_frequency_table,
@@ -53,11 +54,18 @@ def download_file(request, file_type, filename):
     if not os.path.exists(file_path):
         raise Http404("File not found")
 
-    return FileResponse(
+    
+    response = FileResponse(
         open(file_path, 'rb'),
         as_attachment=True,
-        filename=filename
+        filename=filename,
+        content_type='application/octet-stream'
     )
+    
+    response['Content-Disposition'] = \
+        f'attachment; filename="{filename}"'
+    response['X-Content-Type-Options'] = 'nosniff'
+    return response
 
 
 @csrf_exempt
@@ -68,7 +76,6 @@ def compress(request):
         filename      = uploaded_file.name
         extension     = filename.split('.')[-1].lower()
 
-        # ✅ Get mode from form
         mode = request.POST.get('mode', 'lossless')
 
         upload_path = os.path.join(
@@ -278,45 +285,66 @@ def handle_any_file(upload_path, filename, start_time):
     }
 
 
-# ── LOSSY IMAGE ──
+# ── LOSSY IMAGE — Custom DCT Implementation ──
 def handle_lossy_image(upload_path, filename,
                        start_time, request):
     quality   = int(request.POST.get('quality', 40))
     quality   = max(10, min(95, quality))
     base_name = filename.rsplit('.', 1)[0]
+    extension = filename.rsplit('.', 1)[1].lower()
 
-    compressed_filename = 'lossy_' + base_name + '.jpg'
+    compressed_filename = 'lossy_dct_' + base_name + '.jpg'
     compressed_path     = os.path.join(
         settings.MEDIA_ROOT, 'compressed', compressed_filename)
     os.makedirs(
         os.path.dirname(compressed_path), exist_ok=True)
 
-    img = Image.open(upload_path).convert('RGB')
-    img.save(compressed_path, format='JPEG', quality=quality)
+    try:
+        result = dct_compress_image(
+            input_path  = upload_path,
+            output_path = compressed_path,
+            quality     = quality
+        )
 
-    original_size   = os.path.getsize(upload_path)
-    compressed_size = os.path.getsize(compressed_path)
-    reduction       = round(
-        (1 - compressed_size / original_size) * 100, 2)
-    ratio           = round(original_size / compressed_size, 4)
-    exec_time       = round(time.time() - start_time, 2)
+        psnr      = result['psnr']
+        exec_time = round(time.time() - start_time, 2)
 
-    return {
-        'success'           : True,
-        'mode'              : 'lossy',
-        'file_type'         : 'lossy_image',
-        'filename'          : filename,
-        'original_bits'     : original_size * 8,
-        'compressed_bits'   : compressed_size * 8,
-        'compression_ratio' : ratio,
-        'reduction'         : reduction,
-        'psnr'              : 'N/A',
-        'execution_time'    : exec_time,
-        'quality'           : quality,
-        'lossless'          : False,
-        'original_url'      : f'/download/original/{filename}/',
-        'compressed_url'    : f'/download/compressed/{compressed_filename}/',
-    }
+        original_size   = os.path.getsize(upload_path)
+        compressed_size = os.path.getsize(compressed_path)
+
+        reduction = round(
+            (1 - compressed_size / original_size) * 100, 2)
+        ratio     = round(
+            original_size / compressed_size, 4) \
+            if compressed_size > 0 else 1.0
+
+        size_increased = compressed_size > original_size
+
+        if psnr == float('inf'):
+            psnr_display = '∞ dB'
+        else:
+            psnr_display = f'{psnr} dB'
+
+        return {
+            'success'           : True,
+            'mode'              : 'lossy',
+            'file_type'         : 'lossy_image',
+            'filename'          : filename,
+            'original_bits'     : original_size * 8,
+            'compressed_bits'   : compressed_size * 8,
+            'compression_ratio' : ratio,
+            'reduction'         : reduction,
+            'psnr'              : psnr_display,
+            'execution_time'    : exec_time,
+            'quality'           : quality,
+            'lossless'          : False,
+            'size_increased'    : size_increased, 
+            'original_url'      : f'/download/original/{filename}/',
+            'compressed_url'    : f'/download/compressed/{compressed_filename}/',
+        }
+
+    except Exception as e:
+        return {'error': f'DCT compression failed: {str(e)}'}
 
 # ── LOSSY TEXT ──
 def handle_lossy_text(upload_path, filename, start_time):

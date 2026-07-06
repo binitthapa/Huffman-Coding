@@ -488,7 +488,7 @@ body{
                border-opacity-25">
     <small class="text-muted">
         <i class=""></i>
-        Supporting Lossless Huffman Coding and Readable/Viewable Lossy Compression
+        Supporting Lossless and Lossy Compression
     </small>
 </footer>
 
@@ -660,15 +660,21 @@ function startCompression() {
     formData.append('quality', getQuality());
 
     fetch('/compress/', {
-        method: 'POST',
-        body: formData
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) showResults(data);
-        else showError(data.error || 'Unknown error');
-    })
-    .catch(err => showError(err.toString()));
+    method: 'POST',
+    body: formData
+})
+.then(r => r.json())
+.then(data => {
+
+    console.log(data);   // ← ADD THIS LINE
+
+    if (data.success) {
+        showResults(data);
+    } else {
+        showError(data.error || 'Unknown error');
+    }
+})
+.catch(err => showError(err.toString()));
 }
 
 function startProgress() {
@@ -811,6 +817,22 @@ function showResults(data) {
             'Upload the .huff file back to decompress ' +
             'and recover your original file perfectly.');
     }
+    // ── LOSSLESS DOCUMENTS (DOCX, PDF, etc.) ──
+else if (data.file_type === 'file') {
+    setDownloads(
+        data.original_url,
+        data.compressed_url,
+        data.restored_url,
+        'Download Original',
+        'Download Compressed (.huff)',
+        'Download Restored'
+    );
+
+    showInfoNote(
+        'Lossless compression complete! ' +
+        'Upload the .huff file back to decompress ' +
+        'and recover your original file perfectly.');
+}
 
     // ── LOSSY IMAGE ──
     else if (data.file_type === 'lossy_image') {
