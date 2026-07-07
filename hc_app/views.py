@@ -24,6 +24,9 @@ from hc_app.huffman import (
     bytes_to_bitstring,
     save_compressed_file,
     load_compressed_file,
+    save_raw_file,  
+    is_already_compressed,
+    is_huffman_suitable, 
 )
 from hc_app.huffman_image import (
     compress_image,
@@ -226,64 +229,94 @@ def handle_any_file(upload_path, filename, start_time):
     if not data:
         return {'error': 'File is empty'}
 
-    byte_list = list(data)
-
-    freq    = build_frequency_table(byte_list)
-    heap    = build_priority_queue(freq)
-    root    = build_huffman_tree(heap)
-    codes   = generate_codes(
-        root, current_code="", codes={})
-    encoded = encode_text(byte_list, codes)
-    decoded = decode_text(encoded, root)
-
-    original_bits = len(data) * 8
-    exec_time     = round(time.time() - start_time, 2)
-    match         = byte_list == decoded
-
-    base_name     = filename.rsplit('.', 1)[0]
-    extension     = filename.rsplit('.', 1)[1].lower()
+    extension = filename.rsplit('.', 1)[-1].lower()
+    base_name = filename.rsplit('.', 1)[0]
     huff_filename = base_name + '.huff'
     huff_path     = os.path.join(
         settings.MEDIA_ROOT, 'compressed', huff_filename)
-    os.makedirs(
-        os.path.dirname(huff_path), exist_ok=True)
-
-    save_compressed_file(
-        encoded, root, huff_path, extension)
+    os.makedirs(os.path.dirname(huff_path), exist_ok=True)
 
     restored_filename = 'restored_' + filename
     restored_path     = os.path.join(
         settings.MEDIA_ROOT, 'restored', restored_filename)
-    os.makedirs(
-        os.path.dirname(restored_path), exist_ok=True)
-    with open(restored_path, 'wb') as f:
-        f.write(bytes(decoded))
+    os.makedirs(os.path.dirname(restored_path), exist_ok=True)
+
+    original_size = len(data)
+    compression_skipped = False
+    skip_reason = ''
+
+    # Skip compression for already-compressed formats
+    if is_already_compressed(extension):
+        save_raw_file(data, huff_path, extension)
+        with open(restored_path, 'wb') as f:
+            f.write(data)
+        compression_skipped = True
+        skip_reason = (
+            f'.{extension} is already compressed internally. '
+            'Stored without re-compression.')
+
+    else:
+        # Run Huffman
+        byte_list = list(data)
+        freq      = build_frequency_table(byte_list)
+        heap      = build_priority_queue(freq)
+        root      = build_huffman_tree(heap)
+        codes     = generate_codes(root, current_code="", codes={})
+        encoded   = encode_text(byte_list, codes)
+
+        # Try saving compressed first to temp path
+        import tempfile
+        tmp = tempfile.NamedTemporaryFile(
+            delete=False, suffix='.huff')
+        tmp.close()
+        save_compressed_file(encoded, root, tmp.name, extension)
+        compressed_size = os.path.getsize(tmp.name)
+
+        if compressed_size >= original_size:
+            # Skip — store raw instead
+            os.unlink(tmp.name)
+            save_raw_file(data, huff_path, extension)
+            with open(restored_path, 'wb') as f:
+                f.write(data)
+            compression_skipped = True
+            skip_reason = (
+                'Compressed size was larger than original. '
+                'Original stored without compression.')
+        else:
+            # Use compressed file
+            import shutil
+            shutil.move(tmp.name, huff_path)
+            decoded = decode_text(encoded, root)
+            with open(restored_path, 'wb') as f:
+                f.write(bytes(decoded))
 
     actual_compressed_bytes = os.path.getsize(huff_path)
-    actual_compressed_bits  = actual_compressed_bytes * 8
     actual_reduction        = round(
-        (1 - actual_compressed_bytes / len(data)) * 100, 2)
+        (1 - actual_compressed_bytes / original_size) * 100, 2)
     compression_ratio       = round(
-        len(data) / actual_compressed_bytes, 4)
+        original_size / actual_compressed_bytes, 4) \
+        if actual_compressed_bytes > 0 else 1.0
+    exec_time = round(time.time() - start_time, 2)
 
     return {
-        'success'           : True,
-        'mode'              : 'lossless',
-        'file_type'         : 'file',
-        'filename'          : filename,
-        'original_bits'     : original_bits,
-        'compressed_bits'   : actual_compressed_bits,
-        'compression_ratio' : compression_ratio,
-        'reduction'         : actual_reduction,
-        'psnr' : 'N/A',
-        'execution_time'    : exec_time,
-        'lossless'          : match,
-        'original_chars'    : len(data),
-        'original_url'      : f'/download/original/{filename}/',
-        'compressed_url'    : f'/download/compressed/{huff_filename}/',
-        'restored_url'      : f'/download/restored/{restored_filename}/',
+        'success'              : True,
+        'mode'                 : 'lossless',
+        'file_type'            : 'file',
+        'filename'             : filename,
+        'original_bits'        : original_size * 8,
+        'compressed_bits'      : actual_compressed_bytes * 8,
+        'compression_ratio'    : compression_ratio,
+        'reduction'            : actual_reduction,
+        'psnr'                 : '∞ dB',
+        'execution_time'       : exec_time,
+        'lossless'             : True,
+        'original_chars'       : original_size,
+        'compression_skipped'  : compression_skipped,
+        'skip_reason'          : skip_reason,
+        'original_url'         : f'/download/original/{filename}/',
+        'compressed_url'       : f'/download/compressed/{huff_filename}/',
+        'restored_url'         : f'/download/restored/{restored_filename}/',
     }
-
 
 # ── LOSSY IMAGE — Custom DCT Implementation ──
 def handle_lossy_image(upload_path, filename,
@@ -405,30 +438,48 @@ def handle_lossy_text(upload_path, filename, start_time):
 
 # ── DECOMPRESS .huff ──
 def handle_huff(upload_path, filename, start_time):
-    try:
-        with open(upload_path, 'rb') as f:
-            package = pickle.load(f)
-    except Exception:
-        return {
-            'error': (
-                'This .huff file was created by an older '
-                'version of this tool. Please compress '
-                'your original file again to get a '
-                'compatible .huff file.'
-            )
-        }
+
+    # Detect file format from first byte
+    with open(upload_path, "rb") as f:
+        first_byte = f.read(1)
 
     base_name = filename.rsplit('.', 1)[0]
     exec_time = round(time.time() - start_time, 2)
 
-    if package.get('type') == 'image':
-        return handle_huff_image(
-            package, base_name,
-            filename, upload_path, exec_time)
-    else:
+    # New Huffman binary format
+    if first_byte in (b'\xAB', b'\xCD'):
         return handle_huff_text(
-            package, base_name,
-            filename, upload_path, exec_time)
+            base_name,
+            filename,
+            upload_path,
+            exec_time
+        )
+
+    # Old pickle format (images)
+    try:
+        with open(upload_path, "rb") as f:
+            package = pickle.load(f)
+
+        if package.get("type") == "image":
+            return handle_huff_image(
+                package,
+                base_name,
+                filename,
+                upload_path,
+                exec_time
+            )
+
+        return handle_huff_text(
+            base_name,
+            filename,
+            upload_path,
+            exec_time
+        )
+
+    except Exception as e:
+        return {
+            "error": f"Invalid or corrupted .huff file. ({str(e)})"
+        }
 
 
 def handle_huff_image(package, base_name,
@@ -493,15 +544,13 @@ def handle_huff_image(package, base_name,
     }
 
 
-def handle_huff_text(package, base_name,
-                     filename, upload_path, exec_time):
-    encoded_bytes      = package['encoded_bytes']
-    root               = package['tree']
-    original_extension = package.get('original_extension', 'bin')
-
-    bit_string = bytes_to_bitstring(encoded_bytes)
-    encoded    = remove_padding(bit_string)
-    decoded    = decode_text(encoded, root)
+def handle_huff_text(base_name,
+                     filename,
+                     upload_path,
+                     exec_time):
+    # load_compressed_file now returns 4 values
+    encoded, root, original_extension, raw_bytes = \
+        load_compressed_file(upload_path)
 
     restored_filename = 'decompressed_' + \
                         base_name + '.' + original_extension
@@ -510,8 +559,14 @@ def handle_huff_text(package, base_name,
     os.makedirs(
         os.path.dirname(restored_path), exist_ok=True)
 
-    with open(restored_path, 'wb') as f:
-        f.write(bytes(decoded))
+    if raw_bytes is not None:
+        # Was stored raw — restore directly
+        with open(restored_path, 'wb') as f:
+            f.write(raw_bytes)
+    else:
+        decoded = decode_text(encoded, root)
+        with open(restored_path, 'wb') as f:
+            f.write(bytes(decoded))
 
     huff_size     = os.path.getsize(upload_path)
     restored_size = os.path.getsize(restored_path)
