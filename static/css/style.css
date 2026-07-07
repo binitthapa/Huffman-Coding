@@ -1,0 +1,20 @@
+    body{
+        background:#f4f6f9 !important;
+        
+    }
+
+    .card{
+        transition:0.2s;
+    }
+
+    .card:hover{
+        transform:translateY(-2px);
+    }
+
+    .metric-card .card-body{
+        padding:30px 15px;
+    }
+
+    #imageSection img{
+        border-radius:0 0 20px 20px;
+    }
