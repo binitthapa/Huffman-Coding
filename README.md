@@ -28,8 +28,8 @@ This project is a **BScCSIT 7th Semester Final Year Project** that demonstrates 
 
 | Mode | Algorithm | Output | Decompressible |
 |---|---|---|---|
-| **Lossless** | Custom Huffman Coding | `.huff` binary file | ✅ Yes — 100% exact |
-| **Lossy** | Manual DCT (JPEG-style) | Viewable `.jpg` image | ❌ No — irreversible |
+| **Lossless** | Custom Huffman Coding | `.huff` binary file |  Yes — 100% exact |
+| **Lossy** | Manual DCT (JPEG-style) | Viewable `.jpg` image |  No — irreversible |
 
 The tool handles **multiple file formats** — plain text, documents, source code files, and RGB images — with smart detection that skips re-compression on already-compressed formats such as `.pdf`, `.docx`, and `.zip`.
 
@@ -296,9 +296,9 @@ scipy
 |---|---|---|
 | Compression Ratio | 0.31 – 2.06 | 1.26 – 42.50 |
 | PSNR | ∞ dB | 28 – 49 dB |
-| Reversible | ✅ 100% exact | ❌ Irreversible |
+| Reversible |  100% exact |  Irreversible |
 | Best for | Text, source code, archival | Photographic images |
-| Supports all file types | ✅ Yes | ❌ Images only |
+| Supports all file types |  Yes |  Images only |
 
 ---
 
